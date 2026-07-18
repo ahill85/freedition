@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Current NBA, NFL, AFL and cricket headlines in one simple feed.">
+  <title>Sports News</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a class="logo" href="#">SPORTS NEWS</a>
+    <nav aria-label="Filter stories by sport">
+      <button class="active" data-sport="all">ALL</button>
+      <button data-sport="nba">NBA</button>
+      <button data-sport="nfl">NFL</button>
+      <button data-sport="afl">AFL</button>
+      <button data-sport="cricket">CRICKET</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="feed-heading">
+      <h1>LATEST</h1>
+      <span id="updated"></span>
+    </div>
+    <div id="feed" aria-live="polite"></div>
+    <p id="empty" hidden>No current stories found.</p>
+  </main>
+
+  <script src="stories.js"></script>
+  <script>
+    const feed = document.querySelector('#feed');
+    const empty = document.querySelector('#empty');
+    const buttons = [...document.querySelectorAll('nav button')];
+    const data = window.SPORTS_FEED || { updatedAt: null, stories: [] };
+
+    function ago(value) {
+      const minutes = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.floor(hours / 24)}d ago`;
+    }
+
+    function render(sport = 'all') {
+      const stories = data.stories.filter(story => sport === 'all' || story.sport === sport);
+      feed.replaceChildren(...stories.map(story => {
+        const article = document.createElement('article');
+        const label = document.createElement('span');
+        const content = document.createElement('div');
+        const title = document.createElement('h2');
+        const link = document.createElement('a');
+        const details = document.createElement('p');
+        const arrow = document.createElement('a');
+        label.className = `sport ${story.sport}`;
+        label.textContent = story.sport.toUpperCase();
+        link.href = story.url;
+        link.target = '_blank';
+        link.rel = 'noreferrer';
+        link.textContent = story.title;
+        title.append(link);
+        if (story.summary) {
+          const summary = document.createElement('div');
+          summary.className = 'summary';
+          summary.textContent = story.summary;
+          content.append(title, summary);
+        } else content.append(title);
+        details.textContent = `${story.source} · ${ago(story.publishedAt)}`;
+        content.append(details);
+        arrow.className = 'arrow';
+        arrow.href = story.url;
+        arrow.target = '_blank';
+        arrow.rel = 'noreferrer';
+        arrow.setAttribute('aria-label', `Read ${story.title}`);
+        arrow.textContent = '↗';
+        article.append(label, content, arrow);
+        return article;
+      }));
+      empty.hidden = stories.length > 0;
+    }
+
+    buttons.forEach(button => button.addEventListener('click', () => {
+      buttons.forEach(item => item.classList.remove('active'));
+      button.classList.add('active');
+      render(button.dataset.sport);
+    }));
+
+    document.querySelector('#updated').textContent = data.updatedAt
+      ? `UPDATED ${ago(data.updatedAt).toUpperCase()}`
+      : 'AWAITING FIRST UPDATE';
+    render();
+  </script>
+</body>
+</html>
