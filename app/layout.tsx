@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FIVE NOW — The 5 NBA stories that matter now",
-  description: "Sports news without the noise. Five things worth knowing, updated every 15 minutes.",
+  title: "Sports News — Latest NBA, NFL, AFL and Cricket",
+  description: "A simple live feed of current sports headlines from linked news sources.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

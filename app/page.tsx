@@ -1,117 +1,81 @@
-const stories = [
-  {
-    id: 1,
-    number: "01",
-    eyebrow: "Biggest story",
-    icon: "↗",
-    tone: "orange",
-    headline: "Kawhi trade is stuck",
-    happened: "Toronto and LA have paused the agreed Kawhi Leonard trade while the NBA finishes its Clippers investigation.",
-    matters: "Two rosters — and seven assets in the deal — remain in limbo. Adam Silver says the teams chose to wait, not the league.",
-    impact: 9,
-    time: "Updated Jul 15",
-    sources: [{ name: "NBA.com", url: "https://www.nba.com/news/raptors-clippers-kawhi-leonard-trade-on-hold" }, { name: "Yahoo Sports", url: "https://sports.yahoo.com/nba/breaking-news/article/adam-silver-says-nba-didnt-pause-kawhi-leonard-trade-that-raptors-clippers-did-confident-probe-will-end-before-new-season-044455115.html" }],
-    tag: "TRADE",
-  },
-  {
-    id: 2,
-    number: "02",
-    eyebrow: "Player trending",
-    icon: "↑",
-    tone: "blue",
-    headline: "Donaldson takes over",
-    happened: "Miami rookie Tre Donaldson finished with 20 points, 10 assists and eight rebounds in a 101–87 win over Detroit.",
-    matters: "He scored 13 in the fourth as Miami flipped the game 35–15 — the kind of command that earns a longer look in camp.",
-    impact: 7,
-    time: "Last night · 11:01 PM ET",
-    sources: [{ name: "NBA.com", url: "https://www.nba.com/news/live-updates-2026-nba-summer-league-day-9" }],
-    tag: "PLAYER",
-  },
-  {
-    id: 3,
-    number: "03",
-    eyebrow: "Result people are discussing",
-    icon: "!",
-    tone: "yellow",
-    headline: "Kings steal it late",
-    happened: "Sacramento beat Charlotte 92–90 after taking the lead inside the final four minutes.",
-    matters: "Emanuel Sharp led six Kings in double figures, while Charlotte rookie Hannes Steinbach posted a second straight 20/10 game.",
-    impact: 7,
-    time: "Today · 1:52 AM ET",
-    sources: [{ name: "NBA.com", url: "https://www.nba.com/news/2026-nba-summer-league-kings-hornets" }],
-    tag: "RESULT",
-  },
-  {
-    id: 4,
-    number: "04",
-    eyebrow: "Roster move",
-    icon: "+",
-    tone: "red",
-    headline: "Ja is officially a Blazer",
-    happened: "Portland’s trade for Ja Morant is now official, with Jerami Grant and Kris Murray heading to Memphis.",
-    matters: "Portland gets a lead guard for its young core; Memphis resets around size, flexibility and future assets.",
-    impact: 6,
-    time: "Tracker updated Jul 16",
-    sources: [{ name: "NBA.com", url: "https://www.nba.com/news/nba-offseason-deals-2026" }],
-    tag: "TRADE",
-  },
-  {
-    id: 5,
-    number: "05",
-    eyebrow: "What matters next",
-    icon: "→",
-    tone: "green",
-    headline: "Four teams, one final",
-    happened: "Houston plays Memphis at 6:30 ET, then the unbeaten Lakers face Golden State at 8:30 in tonight’s semifinals.",
-    matters: "The winners meet Sunday for the Summer League title. LA enters 4–0 with the tournament’s best point differential.",
-    impact: 6,
-    time: "Tonight · 6:30 PM ET",
-    sources: [{ name: "Yahoo Sports", url: "https://sports.yahoo.com/nba/article/nba-summer-league-2026-daily-schedule-scores-standings-format-how-to-watch-153417060.html" }],
-    tag: "NEXT",
-  },
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Sport = "all" | "nba" | "nfl" | "afl" | "cricket";
+type Story = { id: string; title: string; url: string; source: string; publishedAt: string; sport: Exclude<Sport, "all"> };
+
+const sports: { id: Sport; label: string }[] = [
+  { id: "all", label: "ALL" },
+  { id: "nba", label: "NBA" },
+  { id: "nfl", label: "NFL" },
+  { id: "afl", label: "AFL" },
+  { id: "cricket", label: "CRICKET" },
 ];
 
+function timeAgo(date: string) {
+  const minutes = Math.max(1, Math.floor((Date.now() - new Date(date).getTime()) / 60000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export default function Home() {
+  const [sport, setSport] = useState<Sport>("all");
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(false);
+    fetch(`/api/feed?sport=${sport}`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Feed unavailable");
+        return response.json();
+      })
+      .then((data) => setStories(data.stories ?? []))
+      .catch((reason) => { if (reason.name !== "AbortError") setError(true); })
+      .finally(() => setLoading(false));
+    return () => controller.abort();
+  }, [sport]);
+
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Five Now home">
-          <span className="brand-mark">5</span>
-          <span>FIVE NOW</span>
-        </a>
-        <nav className="league-nav" aria-label="Leagues">
-          <a className="active" href="#top">NBA</a>
-          <span>NFL</span><span>AFL</span><span>CRICKET</span>
+        <a className="brand" href="#top">SPORTS NEWS</a>
+        <nav aria-label="Sports">
+          {sports.map((item) => (
+            <button key={item.id} className={sport === item.id ? "active" : ""} onClick={() => setSport(item.id)}>
+              {item.label}
+            </button>
+          ))}
         </nav>
-        <span className="updated">UPDATED TODAY</span>
       </header>
 
-      <section className="brief" id="brief">
-        <div className="feed-head" id="top">
-          <div><span className="live-dot" />NBA · RIGHT NOW</div>
-          <span>UPDATED 2:36 PM CT</span>
+      <section className="feed" id="top">
+        <div className="feed-title">
+          <h1>{sports.find((item) => item.id === sport)?.label} NEWS</h1>
+          <span>LIVE FEED</span>
         </div>
 
-        {stories.map((story, index) => (
-          <article className={`story story-${index + 1}`} key={story.id}>
-            <div className="story-index">{story.number}</div>
-            <div className="story-body">
-              <div className={`eyebrow ${story.tone}`}><span>{story.icon}</span>{story.eyebrow}</div>
-              <h2>{story.headline}</h2>
-              <div className="story-copy">
-                <div><label>WHAT HAPPENED</label><p>{story.happened}</p></div>
-                <div><label>WHY IT MATTERS</label><p>{story.matters}</p></div>
-              </div>
-              <div className="story-meta">
-                <div className="impact"><span>IMPACT</span><b>{story.impact}</b><small>/10</small><div className="impact-line"><i style={{ width: `${story.impact * 10}%` }} /></div></div>
-                <div className="source">{story.time}<br /><span>Sources: {story.sources.map((source, sourceIndex) => <span key={source.url}>{sourceIndex > 0 && " · "}<a href={source.url} target="_blank" rel="noreferrer">{source.name}</a></span>)}</span></div>
-              </div>
+        {loading && <div className="status">Loading latest stories…</div>}
+        {error && <div className="status error">The feed could not load. Try again shortly.</div>}
+        {!loading && !error && stories.length === 0 && <div className="status">No recent stories found.</div>}
+
+        {!loading && !error && stories.map((story) => (
+          <article className="news-item" key={story.id}>
+            <span className={`sport sport-${story.sport}`}>{story.sport.toUpperCase()}</span>
+            <div>
+              <h2><a href={story.url} target="_blank" rel="noreferrer">{story.title}</a></h2>
+              <p>{story.source} <span>·</span> {timeAgo(story.publishedAt)}</p>
             </div>
-            <div className="story-tag">{story.tag}</div>
+            <a className="open-story" href={story.url} target="_blank" rel="noreferrer" aria-label={`Read ${story.title}`}>↗</a>
           </article>
         ))}
       </section>
-
     </main>
   );
 }
