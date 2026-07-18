@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SIGNAL — The 5 NBA stories that matter now",
+  title: "FIVE NOW — The 5 NBA stories that matter now",
   description: "Sports news without the noise. Five things worth knowing, updated every 15 minutes.",
   icons: {
     icon: "/favicon.svg",
