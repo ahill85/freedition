@@ -1,34 +1,40 @@
-:root { --ink:#171717; --muted:#777; --paper:#f5f5f3; --line:#deded9; --blue:#2457f5; }
+:root { --ink:#16181d; --muted:#73767f; --paper:#f2f3f5; --line:#dde0e5; --blue:#2457f5; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--paper); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
-header { min-height:60px; padding:0 max(18px,calc((100vw - 880px)/2)); background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:2; }
-.logo { color:inherit; text-decoration:none; font-size:15px; font-weight:900; letter-spacing:-.03em; white-space:nowrap; }
+header { min-height:64px; padding:0 max(18px,calc((100vw - 920px)/2)); background:#ffffffed; backdrop-filter:blur(12px); border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:2; }
+.logo { color:inherit; text-decoration:none; font-size:15px; font-weight:900; letter-spacing:-.03em; white-space:nowrap; display:flex; align-items:center; gap:9px; }
+.logo::before { content:"S"; display:grid; place-items:center; width:27px; height:27px; border-radius:8px; background:var(--ink); color:#fff; font-size:12px; letter-spacing:0; }
 nav { align-self:stretch; display:flex; }
-nav button { border:0; border-bottom:2px solid transparent; padding:2px 14px 0; background:transparent; color:#888; cursor:pointer; font-size:10px; font-weight:800; letter-spacing:.08em; }
+nav button { border:0; margin:13px 2px; border-radius:8px; padding:2px 13px 0; background:transparent; color:#8a8d94; cursor:pointer; font-size:10px; font-weight:800; letter-spacing:.08em; transition:.15s ease; }
 nav button:hover { color:var(--ink); }
-nav button.active { color:var(--blue); border-bottom-color:var(--blue); }
-main { max-width:880px; min-height:calc(100vh - 60px); margin:auto; background:#fff; border-inline:1px solid var(--line); }
-.feed-heading { height:58px; padding:0 22px; border-bottom:1px solid var(--ink); display:flex; align-items:center; justify-content:space-between; }
+nav button.active { color:#fff; background:var(--ink); box-shadow:0 2px 6px #0002; }
+main { max-width:920px; min-height:calc(100vh - 64px); margin:auto; padding:22px 20px 48px; }
+.feed-heading { height:46px; padding:0 4px; display:flex; align-items:center; justify-content:space-between; }
 .feed-heading h1 { margin:0; font-size:16px; letter-spacing:-.02em; }
 .feed-heading span { color:var(--muted); font-size:8px; font-weight:800; letter-spacing:.1em; }
-article { padding:17px 22px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:68px 1fr 24px; gap:14px; align-items:start; }
-.sport { width:max-content; margin-top:2px; padding:4px 7px; border:1px solid #ccc; border-radius:12px; color:#666; font-size:7px; font-weight:900; letter-spacing:.08em; }
-.sport.nba { color:#a74425; border-color:#e7b9a9; }.sport.nfl { color:#26509b; border-color:#b8c7e0; }.sport.afl { color:#8b3431; border-color:#dfb7b5; }.sport.cricket { color:#16704c; border-color:#acd1c1; }
-h2 { margin:0; font-size:17px; line-height:1.25; letter-spacing:-.02em; }
+#feed { display:grid; gap:9px; }
+article { position:relative; padding:18px 19px 17px 17px; border:1px solid var(--line); border-radius:12px; background:#fff; display:grid; grid-template-columns:66px 1fr 24px; gap:14px; align-items:start; box-shadow:0 1px 2px #11111108; overflow:hidden; transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease; }
+article::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:#aeb2bb; }
+article.story-nba::before { background:#e36032; } article.story-nfl::before { background:#4774d0; } article.story-afl::before { background:#c34c47; } article.story-cricket::before { background:#27926b; }
+article:hover { transform:translateY(-1px); border-color:#cdd0d7; box-shadow:0 7px 20px #20232b0e; }
+.sport { width:max-content; margin-top:2px; padding:5px 7px 4px; border-radius:6px; background:#f1f2f4; color:#666; font-size:7px; font-weight:900; letter-spacing:.08em; }
+.sport.nba { color:#a74425; background:#fff0eb; }.sport.nfl { color:#26509b; background:#edf3ff; }.sport.afl { color:#8b3431; background:#fff0ef; }.sport.cricket { color:#16704c; background:#eaf8f2; }
+h2 { margin:0; font-size:18px; line-height:1.25; letter-spacing:-.025em; }
 h2 a { color:inherit; text-decoration:none; } h2 a:hover { text-decoration:underline; text-underline-offset:3px; }
-.summary { max-width:680px; margin-top:6px; color:#555; font-family:Georgia,serif; font-size:12px; line-height:1.4; }
+.summary { max-width:680px; margin-top:7px; color:#5f626a; font-size:12px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 article p { margin:7px 0 0; color:var(--muted); font-size:9px; font-weight:700; }
-.arrow { color:#999; text-decoration:none; text-align:right; font-size:15px; }
+.arrow { width:25px; height:25px; border-radius:50%; display:grid; place-items:center; color:#999; background:#f3f4f6; text-decoration:none; font-size:13px; }
 article:hover .arrow { color:var(--blue); }
 #empty { padding:50px 20px; text-align:center; color:var(--muted); font-size:13px; }
 @media (max-width:620px) {
   header { padding:11px 13px; display:block; }
   .logo { display:block; margin-bottom:10px; }
   nav { height:28px; overflow-x:auto; }
-  nav button { padding:0 11px; }
-  main { border:0; }
-  .feed-heading { height:52px; padding:0 14px; }
-  article { padding:15px 14px; grid-template-columns:51px 1fr 18px; gap:9px; }
+  nav button { padding:0 11px; margin:0 1px; }
+  main { padding:12px 10px 32px; }
+  .feed-heading { height:48px; padding:0 4px; }
+  #feed { gap:7px; }
+  article { padding:15px 13px 14px 12px; border-radius:10px; grid-template-columns:49px 1fr 25px; gap:9px; }
   .sport { padding:4px 5px; font-size:6px; }
   h2 { font-size:16px; }
 }

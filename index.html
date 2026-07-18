@@ -47,6 +47,7 @@
       const stories = data.stories.filter(story => sport === 'all' || story.sport === sport);
       feed.replaceChildren(...stories.map(story => {
         const article = document.createElement('article');
+        article.className = `story-${story.sport}`;
         const label = document.createElement('span');
         const content = document.createElement('div');
         const title = document.createElement('h2');
