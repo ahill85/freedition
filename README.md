@@ -1,4 +1,4 @@
-# Sports News
+# FREEDITION
 
 A dependency-free static sports headline feed.
 

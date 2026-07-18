@@ -2,8 +2,11 @@
 * { box-sizing:border-box; }
 body { margin:0; background:var(--paper); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
 header { min-height:64px; padding:0 max(18px,calc((100vw - 920px)/2)); background:#ffffffed; backdrop-filter:blur(12px); border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:2; }
-.logo { color:inherit; text-decoration:none; font-size:15px; font-weight:900; letter-spacing:-.03em; white-space:nowrap; display:flex; align-items:center; gap:9px; }
-.logo::before { content:"S"; display:grid; place-items:center; width:27px; height:27px; border-radius:8px; background:var(--ink); color:#fff; font-size:12px; letter-spacing:0; }
+.logo { color:inherit; text-decoration:none; font-size:15px; font-weight:900; letter-spacing:-.035em; white-space:nowrap; display:flex; align-items:center; gap:9px; }
+.logo-mark { position:relative; display:grid; place-items:center; width:29px; height:29px; border-radius:8px; background:var(--ink); color:#fff; overflow:hidden; box-shadow:inset 0 0 0 1px #ffffff18; }
+.logo-mark b { position:absolute; left:6px; top:4px; font-size:15px; line-height:1; letter-spacing:0; }
+.logo-mark i,.logo-mark i::before,.logo-mark i::after { position:absolute; display:block; content:""; right:5px; width:8px; height:2px; border-radius:2px; background:#fff; }
+.logo-mark i { top:7px; }.logo-mark i::before { top:5px; right:0; width:6px; }.logo-mark i::after { top:10px; right:0; width:4px; }
 nav { align-self:stretch; display:flex; }
 nav button { border:0; margin:13px 2px; border-radius:8px; padding:2px 13px 0; background:transparent; color:#8a8d94; cursor:pointer; font-size:10px; font-weight:800; letter-spacing:.08em; transition:.15s ease; }
 nav button:hover { color:var(--ink); }
@@ -28,7 +31,7 @@ article:hover .arrow { color:var(--blue); }
 #empty { padding:50px 20px; text-align:center; color:var(--muted); font-size:13px; }
 @media (max-width:620px) {
   header { padding:11px 13px; display:block; }
-  .logo { display:block; margin-bottom:10px; }
+  .logo { display:flex; margin-bottom:10px; width:max-content; }
   nav { height:28px; overflow-x:auto; }
   nav button { padding:0 11px; margin:0 1px; }
   main { padding:12px 10px 32px; }

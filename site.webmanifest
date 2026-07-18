@@ -1,0 +1,10 @@
+{
+  "name": "FREEDITION",
+  "short_name": "FREEDITION",
+  "description": "Free, current sports headlines in one simple feed.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f3f5",
+  "theme_color": "#16181d",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
