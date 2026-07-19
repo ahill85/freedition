@@ -32,6 +32,18 @@
       <h1>LATEST</h1>
       <span id="updated"></span>
     </div>
+    <section id="player-picker" hidden aria-label="My players">
+      <form id="player-form">
+        <input id="player-name" type="text" placeholder="Player name" aria-label="Player name" autocomplete="off" required>
+        <select id="player-sport" aria-label="Player sport">
+          <option value="afl">AFL</option><option value="cricket">ICC</option><option value="mlb">MLB</option>
+          <option value="nba" selected>NBA</option><option value="nbl">NBL</option><option value="nfl">NFL</option>
+          <option value="nhl">NHL</option><option value="soccer">SOCCER</option>
+        </select>
+        <button type="submit">ADD PLAYER</button>
+      </form>
+      <div id="saved-players"></div>
+    </section>
     <div id="feed" aria-live="polite"></div>
     <p id="empty" hidden>No current stories found.</p>
   </main>
@@ -48,6 +60,9 @@
     const buttons = [...document.querySelectorAll('nav button')];
     let data = window.SPORTS_FEED || { updatedAt: null, stories: [] };
     const toast = document.querySelector('#news-toast');
+    const playerPicker = document.querySelector('#player-picker');
+    const playerForm = document.querySelector('#player-form');
+    const savedPlayers = document.querySelector('#saved-players');
     const favoriteStorageKey = 'freedition.favoritePlayers';
     let favoritePlayers = [];
 
@@ -72,6 +87,23 @@
       try { localStorage.setItem(favoriteStorageKey, JSON.stringify(favoritePlayers)); } catch (error) {}
     }
 
+    function renderSavedPlayers() {
+      savedPlayers.replaceChildren(...favoritePlayers.map(player => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = `${player.name} · ${player.sport.toUpperCase()} ×`;
+        button.setAttribute('aria-label', `Remove ${player.name}`);
+        button.addEventListener('click', () => {
+          const key = playerKey(player.sport, player.name);
+          favoritePlayers = favoritePlayers.filter(item => playerKey(item.sport, item.name) !== key);
+          saveFavorites();
+          showToast(`${player.name} removed from favourites`);
+          render('favorites');
+        });
+        return button;
+      }));
+    }
+
     function ago(value) {
       const minutes = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
       if (minutes < 60) return `${minutes}m ago`;
@@ -81,6 +113,8 @@
     }
 
     function render(sport = 'all') {
+      playerPicker.hidden = sport !== 'favorites';
+      if (sport === 'favorites') renderSavedPlayers();
       const stories = data.stories.filter(story => sport === 'all' ||
         (sport === 'favorites' ? storyMatchesFavorites(story) : story.sport === sport));
       feed.replaceChildren(...stories.map(story => {
@@ -164,6 +198,19 @@
     }
 
     const filterStorageKey = 'freedition.sportFilter';
+
+    playerForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const input = document.querySelector('#player-name');
+      const sport = document.querySelector('#player-sport').value;
+      const name = input.value.trim().replace(/\s+/g, ' ');
+      if (!name) return;
+      if (!isFavorite(sport, name)) favoritePlayers.push({ sport, name });
+      saveFavorites();
+      input.value = '';
+      showToast(`${name} favourited`);
+      render('favorites');
+    });
 
     buttons.forEach(button => button.addEventListener('click', () => {
       buttons.forEach(item => item.classList.remove('active'));
