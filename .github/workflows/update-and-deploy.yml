@@ -1,4 +1,4 @@
-name: Update and deploy sports feed
+name: Update sports feed
 
 on:
   schedule:
@@ -9,11 +9,9 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: feed-update
   cancel-in-progress: true
 
 jobs:
@@ -30,8 +28,3 @@ jobs:
           git add stories.js stories.json
           git diff --cached --quiet || git commit -m "Update sports feed"
           git push
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - uses: actions/deploy-pages@v4

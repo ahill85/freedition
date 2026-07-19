@@ -17,7 +17,7 @@ Open <http://localhost:8000>. Stop the local server with `Ctrl+C`.
 Running `python3 update.py` again refreshes `stories.js`. Reload the browser to
 see the new stories. There is nothing to install and no Node.js dependency.
 
-## Publish free with GitHub Pages
+## Publish the updater on GitHub
 
 1. Sign in to GitHub and create a new **public** repository named `freedition`.
    Do not initialise it with a README, `.gitignore`, or licence.
@@ -30,12 +30,9 @@ see the new stories. There is nothing to install and no Node.js dependency.
    git push -u origin main
    ```
 
-3. On GitHub, open **Settings → Pages** and choose **GitHub Actions** as the
-   source.
-4. Open **Actions → Update and deploy sports feed → Run workflow**. When the
-   run finishes, visit `https://YOUR-USERNAME.github.io/freedition/`.
+3. Open **Actions → Update sports feed → Run workflow** once.
 
-The included workflow refreshes and republishes the feed every 15 minutes. It
+The included workflow refreshes the feed data every 15 minutes. It
 can also be run manually from the Actions tab. It uses Python's standard
 library only: no server, database, API key, Node.js process, or paid worker.
 
