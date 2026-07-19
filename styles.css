@@ -11,6 +11,8 @@ nav { align-self:stretch; display:flex; }
 nav button { border:0; margin:13px 2px; border-radius:8px; padding:2px 13px 0; background:transparent; color:#8a8d94; cursor:pointer; font-size:10px; font-weight:800; letter-spacing:.08em; transition:.15s ease; }
 nav button:hover { color:var(--ink); }
 nav button.active { color:#fff; background:var(--ink); box-shadow:0 2px 6px #0002; }
+nav button[data-sport="favorites"] { font-size:15px; color:#aa7b00; }
+nav button[data-sport="favorites"].active { color:#ffd65a; }
 main { max-width:920px; min-height:calc(100vh - 64px); margin:auto; padding:22px 20px 48px; }
 .feed-heading { height:46px; padding:0 4px; display:flex; align-items:center; justify-content:space-between; }
 .feed-heading h1 { margin:0; font-size:16px; letter-spacing:-.02em; }
@@ -29,6 +31,8 @@ article p { margin:7px 0 0; color:var(--muted); font-size:9px; font-weight:700; 
 .story-actions { display:grid; gap:5px; }
 .story-actions a,.story-actions button { width:48px; min-height:24px; padding:0; border:0; border-radius:6px; display:grid; place-items:center; background:#f1f2f4; color:#777b84; cursor:pointer; text-decoration:none; font:800 7px/1 Arial,Helvetica,sans-serif; letter-spacing:.06em; }
 .story-actions a:hover,.story-actions button:hover { color:var(--blue); background:#e9edfa; }
+.story-actions .favorite { font-size:17px; color:#a37a0b; letter-spacing:0; }
+.story-actions .favorite.is-favorite { color:#9a7000; background:#fff3c4; }
 #empty { padding:50px 20px; text-align:center; color:var(--muted); font-size:13px; }
 .news-toast { position:fixed; left:50%; bottom:20px; z-index:5; width:max-content; max-width:calc(100vw - 24px); padding:11px 11px 11px 15px; border:1px solid #30333a; border-radius:10px; background:#1c1e23; color:#fff; box-shadow:0 10px 30px #0003; display:flex; align-items:center; gap:14px; font-size:12px; font-weight:700; opacity:0; transform:translate(-50%,12px); pointer-events:none; transition:opacity .2s ease,transform .2s ease; }
 .news-toast.show { opacity:1; transform:translate(-50%,0); pointer-events:auto; }

@@ -15,6 +15,7 @@
     <a class="logo" href="#" aria-label="FREEDITION home"><span class="logo-mark"><b>F</b><i></i></span><span>FREEDITION</span></a>
     <nav aria-label="Filter stories by sport">
       <button class="active" data-sport="all">ALL</button>
+      <button data-sport="favorites" aria-label="My favourite players" title="My players">★</button>
       <button data-sport="afl">AFL</button>
       <button data-sport="cricket">ICC</button>
       <button data-sport="mlb">MLB</button>
@@ -47,6 +48,29 @@
     const buttons = [...document.querySelectorAll('nav button')];
     let data = window.SPORTS_FEED || { updatedAt: null, stories: [] };
     const toast = document.querySelector('#news-toast');
+    const favoriteStorageKey = 'freedition.favoritePlayers';
+    let favoritePlayers = [];
+
+    function playerKey(sport, name) {
+      return `${sport}|${name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
+    }
+
+    function isFavorite(sport, name) {
+      const key = playerKey(sport, name);
+      return favoritePlayers.some(player => playerKey(player.sport, player.name) === key);
+    }
+
+    function storyMatchesFavorites(story) {
+      const names = story.players || [];
+      const text = `${story.title} ${story.summary || ''}`.toLowerCase();
+      return favoritePlayers.some(player => player.sport === story.sport &&
+        (names.some(name => playerKey(story.sport, name) === playerKey(player.sport, player.name)) ||
+         text.includes(player.name.toLowerCase())));
+    }
+
+    function saveFavorites() {
+      try { localStorage.setItem(favoriteStorageKey, JSON.stringify(favoritePlayers)); } catch (error) {}
+    }
 
     function ago(value) {
       const minutes = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
@@ -57,7 +81,8 @@
     }
 
     function render(sport = 'all') {
-      const stories = data.stories.filter(story => sport === 'all' || story.sport === sport);
+      const stories = data.stories.filter(story => sport === 'all' ||
+        (sport === 'favorites' ? storyMatchesFavorites(story) : story.sport === sport));
       feed.replaceChildren(...stories.map(story => {
         const article = document.createElement('article');
         article.className = `story-${story.sport}`;
@@ -105,9 +130,36 @@
           }
         });
         actions.append(view, share);
+        if (story.players && story.players.length) {
+          const player = story.players[0];
+          const favorite = document.createElement('button');
+          const selected = isFavorite(story.sport, player);
+          favorite.type = 'button';
+          favorite.className = `favorite${selected ? ' is-favorite' : ''}`;
+          favorite.textContent = selected ? '★' : '☆';
+          favorite.setAttribute('aria-label', `${selected ? 'Remove' : 'Favourite'} ${player}`);
+          favorite.title = `${selected ? 'Remove' : 'Favourite'} ${player}`;
+          favorite.addEventListener('click', () => {
+            if (isFavorite(story.sport, player)) {
+              const key = playerKey(story.sport, player);
+              favoritePlayers = favoritePlayers.filter(item => playerKey(item.sport, item.name) !== key);
+              showToast(`${player} removed from favourites`);
+            } else {
+              favoritePlayers.push({ sport: story.sport, name: player });
+              showToast(`${player} favourited`);
+            }
+            saveFavorites();
+            const active = buttons.find(button => button.classList.contains('active'));
+            render(active ? active.dataset.sport : 'all');
+          });
+          actions.append(favorite);
+        }
         article.append(label, content, actions);
         return article;
       }));
+      empty.textContent = sport === 'favorites'
+        ? (favoritePlayers.length ? 'No current news for your favourite players.' : 'Star a player to build your personal feed.')
+        : 'No current stories found.';
       empty.hidden = stories.length > 0;
     }
 
@@ -161,6 +213,10 @@
           if (response.ok) data = await response.json();
         } catch (error) {}
       }
+      try {
+        const stored = JSON.parse(localStorage.getItem(favoriteStorageKey) || '[]');
+        if (Array.isArray(stored)) favoritePlayers = stored.filter(player => player && player.sport && player.name);
+      } catch (error) {}
       let savedSport = 'all';
       try { savedSport = localStorage.getItem(filterStorageKey) || 'all'; } catch (error) {}
       const savedButton = buttons.find(button => button.dataset.sport === savedSport) || buttons[0];

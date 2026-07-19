@@ -121,10 +121,16 @@ def rss_stories(sport, source, url):
         if description.lower() == title.lower() or title.lower() in description.lower():
             description = ""
         if title and link:
+            players = []
+            if source == "RotoWire" and ":" in title:
+                player = clean(title.split(":", 1)[0])
+                if len(player.split()) >= 2:
+                    players = [player]
             stories.append({"sport": sport, "title": title, "summary": description,
                             "url": link, "source": (item_source if source == "Google News" and item_source
                                                      else f"Provided by {source}" if restricted_feed else source),
                             "publishedAt": iso_date(item.findtext("pubDate")),
+                            "players": players,
                             "kind": ("player" if source == "RotoWire" else
                                      "fantasy" if source in {"FantasySP", "DT Talk", "Keeper League"} else "news")})
     return stories
@@ -137,6 +143,9 @@ def nbc_player_stories(sport, url):
         headline = re.search(r'<h3 class="PlayerNewsPost-headline">(.*?)</h3>', block, re.S)
         analysis = re.search(r'<div class="PlayerNewsPost-analysis">(.*?)(?:<div class="PlayerNewsPost-author"|</div>)', block, re.S)
         published = re.search(r'PlayerNewsPost-date[^>]*data-date="([^"]+)"', block)
+        first_name = re.search(r'PlayerNewsPost-firstName[^>]*>(.*?)</span>', block, re.S)
+        last_name = re.search(r'PlayerNewsPost-lastName[^>]*>(.*?)</span>', block, re.S)
+        player = clean(" ".join(part.group(1) for part in (first_name, last_name) if part))
         title = clean(headline.group(1)) if headline else ""
         link = html.unescape(player_link.group(1)) if player_link else ""
         if title and link:
@@ -144,6 +153,7 @@ def nbc_player_stories(sport, url):
                             "summary": short(analysis.group(1)) if analysis else "",
                             "url": link, "source": "NBC Sports Rotoworld",
                             "publishedAt": iso_timestamp(published.group(1) if published else ""),
+                            "players": [player] if player else [],
                             "kind": "player"})
     return stories[:LIMIT_PER_SPORT]
 
