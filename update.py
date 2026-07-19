@@ -6,19 +6,73 @@ import re
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
 RSS_FEEDS = {
-    "nba": [("ESPN", "https://www.espn.com/espn/rss/nba/news")],
-    "nfl": [("ESPN", "https://www.espn.com/espn/rss/nfl/news")],
-    "afl": [("AFL.com.au", "https://www.afl.com.au/rss")],
+    "nba": [
+        ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=NBA"),
+        ("ESPN", "https://www.espn.com/espn/rss/nba/news"),
+        ("FOX Sports", "https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=30&tags=fs%2Fnba"),
+        ("FantasySP", "https://www.fantasysp.com/rss/nba/fantasysp/"),
+        ("Yahoo Sports", "https://sports.yahoo.com/nba/rss/"),
+        ("CBS Sports", "https://www.cbssports.com/rss/headlines/nba/"),
+    ],
+    "nbl": [
+        ("Google News", "https://news.google.com/rss/search?q=Australian+NBL+basketball&hl=en-AU&gl=AU&ceid=AU:en"),
+    ],
+    "mlb": [
+        ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=MLB"),
+        ("ESPN", "https://www.espn.com/espn/rss/mlb/news"),
+        ("FOX Sports", "https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=30&tags=fs%2Fmlb"),
+        ("FantasySP", "https://www.fantasysp.com/rss/mlb/fantasysp/"),
+        ("Yahoo Sports", "https://sports.yahoo.com/mlb/rss/"),
+        ("CBS Sports", "https://www.cbssports.com/rss/headlines/mlb/"),
+    ],
+    "nfl": [
+        ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=NFL"),
+        ("ESPN", "https://www.espn.com/espn/rss/nfl/news"),
+        ("FOX Sports", "https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=30&tags=fs%2Fnfl"),
+        ("FantasySP", "https://www.fantasysp.com/rss/nfl/fantasysp/"),
+        ("Yahoo Sports", "https://sports.yahoo.com/nfl/rss/"),
+        ("CBS Sports", "https://www.cbssports.com/rss/headlines/nfl/"),
+        ("BBC Sport", "https://feeds.bbci.co.uk/sport/american-football/rss.xml"),
+    ],
+    "nhl": [
+        ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=NHL"),
+        ("ESPN", "https://www.espn.com/espn/rss/nhl/news"),
+        ("FOX Sports", "https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=30&tags=fs%2Fnhl"),
+        ("FantasySP", "https://www.fantasysp.com/rss/nhl/fantasysp/"),
+        ("Yahoo Sports", "https://sports.yahoo.com/nhl/rss/"),
+        ("CBS Sports", "https://www.cbssports.com/rss/headlines/nhl/"),
+    ],
+    "soccer": [
+        ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=SOCCER"),
+        ("ESPN", "https://www.espn.com/espn/rss/soccer/news"),
+        ("FOX Sports", "https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&size=30&tags=fs%2Fsoccer"),
+        ("Yahoo Sports", "https://sports.yahoo.com/soccer/rss/"),
+        ("CBS Sports", "https://www.cbssports.com/rss/headlines/soccer/"),
+        ("BBC Sport", "https://feeds.bbci.co.uk/sport/football/rss.xml"),
+    ],
+    "afl": [
+        ("DT Talk", "https://dreamteamtalk.com/feed/"),
+        ("Keeper League", "https://keeperleaguepod.com.au/feed/"),
+        ("AFL.com.au", "https://www.afl.com.au/rss"),
+    ],
     "cricket": [("ESPNcricinfo", "https://www.espncricinfo.com/rss/content/story/feeds/0.xml")],
+}
+NBC_PLAYER_NEWS = {
+    "nba": "https://www.nbcsports.com/fantasy/basketball/player-news",
+    "nfl": "https://www.nbcsports.com/fantasy/football/player-news",
+    "mlb": "https://www.nbcsports.com/fantasy/baseball/player-news",
 }
 GDELT_AFL = "https://api.gdeltproject.org/api/v2/doc/doc?query=%28AFL%20OR%20%22Australian%20Football%20League%22%29&mode=artlist&maxrecords=50&format=json&sort=datedesc"
 LIMIT_PER_SPORT = 30
+LIMIT_PER_SOURCE = 15
+LIMIT_PRIORITY_PER_SPORT = 20
+MAX_STORY_AGE = timedelta(days=14)
 
 def clean(value):
     value = html.unescape(re.sub(r"<[^>]+>", " ", value or ""))
@@ -33,7 +87,7 @@ def short(value, limit=170):
 
 def fetch(url):
     request = urllib.request.Request(url, headers={"User-Agent": "SportsNewsStaticFeed/1.0"})
-    with urllib.request.urlopen(request, timeout=25) as response:
+    with urllib.request.urlopen(request, timeout=12) as response:
         return response.read()
 
 def iso_date(value):
@@ -45,20 +99,53 @@ def iso_date(value):
     except (TypeError, ValueError, OverflowError):
         return datetime.now(timezone.utc).isoformat()
 
+def iso_timestamp(value):
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+    except (AttributeError, ValueError):
+        return datetime.now(timezone.utc).isoformat()
+
 def rss_stories(sport, source, url):
     root = ET.fromstring(fetch(url))
     stories = []
     for item in root.findall(".//item")[:LIMIT_PER_SPORT]:
         title = clean(item.findtext("title"))
+        item_source = clean(item.findtext("source"))
+        if source == "Google News" and item_source:
+            suffix = f" - {item_source}"
+            if title.endswith(suffix):
+                title = title[:-len(suffix)]
         link = clean(item.findtext("link"))
-        description = short(item.findtext("description"))
+        restricted_feed = source in {"ESPN", "FOX Sports"}
+        description = "" if restricted_feed else short(item.findtext("description"))
         if description.lower() == title.lower() or title.lower() in description.lower():
             description = ""
         if title and link:
             stories.append({"sport": sport, "title": title, "summary": description,
-                            "url": link, "source": source,
-                            "publishedAt": iso_date(item.findtext("pubDate"))})
+                            "url": link, "source": (item_source if source == "Google News" and item_source
+                                                     else f"Provided by {source}" if restricted_feed else source),
+                            "publishedAt": iso_date(item.findtext("pubDate")),
+                            "kind": ("player" if source == "RotoWire" else
+                                     "fantasy" if source in {"FantasySP", "DT Talk", "Keeper League"} else "news")})
     return stories
+
+def nbc_player_stories(sport, url):
+    page = fetch(url).decode("utf-8", "ignore")
+    stories = []
+    for block in re.split(r'<li class="PlayerNewsModuleList-item"[^>]*>', page)[1:]:
+        player_link = re.search(r'PlayerNewsPost-name-container.*?<a href="([^"]+)"', block, re.S)
+        headline = re.search(r'<h3 class="PlayerNewsPost-headline">(.*?)</h3>', block, re.S)
+        analysis = re.search(r'<div class="PlayerNewsPost-analysis">(.*?)(?:<div class="PlayerNewsPost-author"|</div>)', block, re.S)
+        published = re.search(r'PlayerNewsPost-date[^>]*data-date="([^"]+)"', block)
+        title = clean(headline.group(1)) if headline else ""
+        link = html.unescape(player_link.group(1)) if player_link else ""
+        if title and link:
+            stories.append({"sport": sport, "title": title,
+                            "summary": short(analysis.group(1)) if analysis else "",
+                            "url": link, "source": "NBC Sports Rotoworld",
+                            "publishedAt": iso_timestamp(published.group(1) if published else ""),
+                            "kind": "player"})
+    return stories[:LIMIT_PER_SPORT]
 
 def gdelt_afl_stories():
     payload = json.loads(fetch(GDELT_AFL))
@@ -87,9 +174,21 @@ def duplicate(a, b):
     left, right = words(a["title"]), words(b["title"])
     return bool(left and right) and len(left & right) / len(left | right) >= 0.62
 
+def is_fresh(story):
+    try:
+        published = datetime.fromisoformat(story["publishedAt"].replace("Z", "+00:00"))
+        return published >= datetime.now(timezone.utc) - MAX_STORY_AGE
+    except (KeyError, TypeError, ValueError):
+        return False
+
 def main():
     stories = []
     failures = []
+    for sport, url in NBC_PLAYER_NEWS.items():
+        try:
+            stories.extend(nbc_player_stories(sport, url))
+        except Exception as error:
+            failures.append(f"NBC player news {sport}: {error}")
     for sport, feeds in RSS_FEEDS.items():
         for source, url in feeds:
             try:
@@ -102,21 +201,38 @@ def main():
         except Exception as error:
             failures.append(f"GDELT AFL fallback: {error}")
 
+    stories = [story for story in stories if is_fresh(story)]
     stories.sort(key=lambda story: story["publishedAt"], reverse=True)
     unique = []
     counts = {}
-    for story in stories:
+    source_counts = {}
+    priority_counts = {}
+    prioritized = [story for story in stories if story.get("kind") == "player"]
+    prioritized.extend(story for story in stories if story.get("kind") == "fantasy")
+    prioritized.extend(story for story in stories if story.get("kind") not in {"player", "fantasy"})
+    for story in prioritized:
         if counts.get(story["sport"], 0) >= LIMIT_PER_SPORT:
+            continue
+        if story.get("kind") in {"player", "fantasy"} and priority_counts.get(story["sport"], 0) >= LIMIT_PRIORITY_PER_SPORT:
+            continue
+        source_key = (story["sport"], story["source"])
+        if len(RSS_FEEDS.get(story["sport"], [])) > 1 and source_counts.get(source_key, 0) >= LIMIT_PER_SOURCE:
             continue
         if any(duplicate(story, existing) for existing in unique):
             continue
         unique.append(story)
         counts[story["sport"]] = counts.get(story["sport"], 0) + 1
+        source_counts[source_key] = source_counts.get(source_key, 0) + 1
+        if story.get("kind") in {"player", "fantasy"}:
+            priority_counts[story["sport"]] = priority_counts.get(story["sport"], 0) + 1
+
+    unique.sort(key=lambda story: story["publishedAt"], reverse=True)
 
     if not unique:
         raise SystemExit("All feeds failed; keeping the existing stories.js")
     payload = {"updatedAt": datetime.now(timezone.utc).isoformat(), "stories": unique}
     Path("stories.js").write_text("window.SPORTS_FEED=" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
+    Path("stories.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"Wrote {len(unique)} stories. " + ("Failures: " + "; ".join(failures) if failures else "All sources responded."))
 
 if __name__ == "__main__":

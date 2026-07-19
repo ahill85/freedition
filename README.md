@@ -1,15 +1,58 @@
 # FREEDITION
 
-A dependency-free static sports headline feed.
+A dependency-free static sports headline feed. It needs Python 3 to refresh the
+headlines, but the published website is plain HTML, CSS and JavaScript.
 
-## Update locally
+## Run locally
+
+From this folder:
 
 ```sh
 python3 update.py
+python3 -m http.server 8000
 ```
 
-Then open `index.html` directly in a browser. The GitHub workflow refreshes the feed every 15 minutes and deploys it to GitHub Pages.
+Open <http://localhost:8000>. Stop the local server with `Ctrl+C`.
 
-## GitHub Pages setup
+Running `python3 update.py` again refreshes `stories.js`. Reload the browser to
+see the new stories. There is nothing to install and no Node.js dependency.
 
-Create a public GitHub repository, push these files to its `main` branch, then set **Settings → Pages → Source** to **GitHub Actions**.
+## Publish free with GitHub Pages
+
+1. Sign in to GitHub and create a new **public** repository named `freedition`.
+   Do not initialise it with a README, `.gitignore`, or licence.
+2. In this folder, replace `YOUR-USERNAME` below and run:
+
+   ```sh
+   git add .
+   git commit -m "Launch FREEDITION"
+   git remote add origin https://github.com/YOUR-USERNAME/freedition.git
+   git push -u origin main
+   ```
+
+3. On GitHub, open **Settings → Pages** and choose **GitHub Actions** as the
+   source.
+4. Open **Actions → Update and deploy sports feed → Run workflow**. When the
+   run finishes, visit `https://YOUR-USERNAME.github.io/freedition/`.
+
+The included workflow refreshes and republishes the feed every 15 minutes. It
+can also be run manually from the Actions tab. It uses Python's standard
+library only: no server, database, API key, Node.js process, or paid worker.
+
+The public site also reads `stories.json` from this repository. A copy hosted at
+`astarmedia.net/freedition` therefore receives new stories without repeated FTP
+uploads. `stories.js` remains a local fallback if GitHub cannot be reached.
+
+## Current feeds
+
+- AFL: DT Talk, Keeper League, AFL.com.au, with GDELT as an emergency fallback
+- ICC cricket: ESPNcricinfo
+- MLB: NBC Sports Rotoworld player news, RotoWire, FantasySP, ESPN, FOX Sports, Yahoo Sports, CBS Sports
+- NBA: NBC Sports Rotoworld player news, RotoWire, FantasySP, ESPN, FOX Sports, Yahoo Sports, CBS Sports
+- NBL: Google News RSS, retaining each original publisher's attribution
+- NFL: NBC Sports Rotoworld player news, RotoWire, FantasySP, ESPN, FOX Sports, Yahoo Sports, CBS Sports, BBC Sport
+- NHL: RotoWire, FantasySP, ESPN, FOX Sports, Yahoo Sports, CBS Sports
+- Soccer: RotoWire, ESPN, FOX Sports, Yahoo Sports, CBS Sports, BBC Sport
+
+Stories retain their publisher attribution and link directly to the original
+article. Duplicate headlines are merged and each sport is capped at 30 items.

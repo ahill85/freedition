@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="FREEDITION — current NBA, NFL, AFL and cricket headlines in one simple feed.">
-  <meta name="theme-color" content="#16181d">
+  <meta name="description" content="FREEDITION — current AFL, cricket, MLB, NBA, NBL, NFL, NHL and soccer headlines in one simple feed.">
+  <meta name="theme-color" content="#f4f5f7">
   <title>FREEDITION — Free Sports News</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="site.webmanifest">
@@ -15,10 +15,14 @@
     <a class="logo" href="#" aria-label="FREEDITION home"><span class="logo-mark"><b>F</b><i></i></span><span>FREEDITION</span></a>
     <nav aria-label="Filter stories by sport">
       <button class="active" data-sport="all">ALL</button>
-      <button data-sport="nba">NBA</button>
-      <button data-sport="nfl">NFL</button>
       <button data-sport="afl">AFL</button>
-      <button data-sport="cricket">CRICKET</button>
+      <button data-sport="cricket">ICC</button>
+      <button data-sport="mlb">MLB</button>
+      <button data-sport="nba">NBA</button>
+      <button data-sport="nbl">NBL</button>
+      <button data-sport="nfl">NFL</button>
+      <button data-sport="nhl">NHL</button>
+      <button data-sport="soccer">SOCCER</button>
     </nav>
   </header>
 
@@ -31,12 +35,18 @@
     <p id="empty" hidden>No current stories found.</p>
   </main>
 
+  <div id="news-toast" class="news-toast" role="status" aria-live="polite" hidden>
+    <span></span>
+    <button type="button" aria-label="Dismiss notification">×</button>
+  </div>
+
   <script src="stories.js"></script>
   <script>
     const feed = document.querySelector('#feed');
     const empty = document.querySelector('#empty');
     const buttons = [...document.querySelectorAll('nav button')];
-    const data = window.SPORTS_FEED || { updatedAt: null, stories: [] };
+    let data = window.SPORTS_FEED || { updatedAt: null, stories: [] };
+    const toast = document.querySelector('#news-toast');
 
     function ago(value) {
       const minutes = Math.max(1, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
@@ -56,7 +66,9 @@
         const title = document.createElement('h2');
         const link = document.createElement('a');
         const details = document.createElement('p');
-        const arrow = document.createElement('a');
+        const actions = document.createElement('div');
+        const view = document.createElement('a');
+        const share = document.createElement('button');
         label.className = `sport ${story.sport}`;
         label.textContent = story.sport.toUpperCase();
         link.href = story.url;
@@ -72,28 +84,92 @@
         } else content.append(title);
         details.textContent = `${story.source} · ${ago(story.publishedAt)}`;
         content.append(details);
-        arrow.className = 'arrow';
-        arrow.href = story.url;
-        arrow.target = '_blank';
-        arrow.rel = 'noreferrer';
-        arrow.setAttribute('aria-label', `Read ${story.title}`);
-        arrow.textContent = '↗';
-        article.append(label, content, arrow);
+        actions.className = 'story-actions';
+        view.href = story.url;
+        view.target = '_blank';
+        view.rel = 'noreferrer';
+        view.setAttribute('aria-label', `View ${story.title}`);
+        view.textContent = 'VIEW';
+        share.type = 'button';
+        share.setAttribute('aria-label', `Share ${story.title}`);
+        share.textContent = 'SHARE';
+        share.addEventListener('click', async () => {
+          if (navigator.share) {
+            try { await navigator.share({ title: story.title, url: story.url }); }
+            catch (error) { if (error.name !== 'AbortError') showToast('Could not share this story'); }
+          } else {
+            try {
+              await navigator.clipboard.writeText(story.url);
+              showToast('Story link copied');
+            } catch (error) { showToast('Could not copy the story link'); }
+          }
+        });
+        actions.append(view, share);
+        article.append(label, content, actions);
         return article;
       }));
       empty.hidden = stories.length > 0;
     }
 
+    const filterStorageKey = 'freedition.sportFilter';
+
     buttons.forEach(button => button.addEventListener('click', () => {
       buttons.forEach(item => item.classList.remove('active'));
       button.classList.add('active');
+      try { localStorage.setItem(filterStorageKey, button.dataset.sport); } catch (error) {}
       render(button.dataset.sport);
     }));
 
-    document.querySelector('#updated').textContent = data.updatedAt
-      ? `UPDATED ${ago(data.updatedAt).toUpperCase()}`
-      : 'AWAITING FIRST UPDATE';
-    render();
+    function updateTimestamp() {
+      document.querySelector('#updated').textContent = data.updatedAt
+        ? `UPDATED ${ago(data.updatedAt).toUpperCase()}`
+        : 'AWAITING FIRST UPDATE';
+    }
+
+    let toastTimer;
+    function showToast(message, duration = 4000) {
+      window.clearTimeout(toastTimer);
+      toast.querySelector('span').textContent = message;
+      toast.hidden = false;
+      requestAnimationFrame(() => toast.classList.add('show'));
+      toastTimer = window.setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    function showNewStoriesToast() {
+      const storageKey = 'freedition.seenStories';
+      const current = data.stories.map(story => story.url);
+      let previous = [];
+      try { previous = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (error) {}
+      if (previous.length) {
+        const seen = new Set(previous);
+        const count = current.filter(url => !seen.has(url)).length;
+        if (count) {
+          showToast(`${count} new ${count === 1 ? 'story' : 'stories'} since your last visit`, 6000);
+        }
+      }
+      try { localStorage.setItem(storageKey, JSON.stringify(current)); } catch (error) {}
+    }
+
+    toast.querySelector('button').addEventListener('click', () => toast.classList.remove('show'));
+    toast.addEventListener('transitionend', () => {
+      if (!toast.classList.contains('show')) toast.hidden = true;
+    });
+    async function boot() {
+      if (!['', 'localhost', '127.0.0.1'].includes(location.hostname)) {
+        try {
+          const response = await fetch(`https://raw.githubusercontent.com/ahill85/freedition/main/stories.json?t=${Date.now()}`, { cache: 'no-store' });
+          if (response.ok) data = await response.json();
+        } catch (error) {}
+      }
+      let savedSport = 'all';
+      try { savedSport = localStorage.getItem(filterStorageKey) || 'all'; } catch (error) {}
+      const savedButton = buttons.find(button => button.dataset.sport === savedSport) || buttons[0];
+      buttons.forEach(button => button.classList.toggle('active', button === savedButton));
+      updateTimestamp();
+      render(savedButton.dataset.sport);
+      showNewStoriesToast();
+    }
+    boot();
   </script>
 </body>
 </html>
