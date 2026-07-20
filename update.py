@@ -252,6 +252,13 @@ def main():
 
     if not unique:
         raise SystemExit("All feeds failed; keeping the existing stories.js")
+    try:
+        existing = json.loads(Path("stories.json").read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        existing = {}
+    if existing.get("stories") == unique:
+        print(f"No story changes; kept existing {len(unique)}-story feed.")
+        return
     payload = {"updatedAt": datetime.now(timezone.utc).isoformat(), "stories": unique}
     Path("stories.js").write_text("window.SPORTS_FEED=" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
     Path("stories.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")

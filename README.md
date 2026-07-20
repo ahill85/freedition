@@ -32,11 +32,14 @@ see the new stories. There is nothing to install and no Node.js dependency.
 
 3. Open **Actions → Update sports feed → Run workflow** once.
 
-The included workflow refreshes the feed data every 15 minutes. It
+The included workflow checks the feed data once an hour. It has a hard two-minute
+timeout, so a 31-day month is capped at 744 scheduled jobs and 1,488 runner-minutes.
+It only commits when the story set changes and
 can also be run manually from the Actions tab. It uses Python's standard
 library only: no server, database, API key, Node.js process, or paid worker.
 
-The public site also reads `stories.json` from this repository. A copy hosted at
+The public site also reads `stories.json` from this repository, caching it in the
+browser for 15 minutes to avoid an origin request on every page view. A copy hosted at
 `astarmedia.net/freedition` therefore receives new stories without repeated FTP
 uploads. `stories.js` remains a local fallback if GitHub cannot be reached.
 

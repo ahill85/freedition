@@ -82,6 +82,9 @@
     const readStorageKey = 'freedition.readStories';
     const kindStorageKey = 'freedition.kindFilter';
     const hideReadStorageKey = 'freedition.hideRead';
+    const feedCacheKey = 'freedition.cachedFeed';
+    const feedCacheTimeKey = 'freedition.cachedFeedTime';
+    const feedCacheMs = 15 * 60 * 1000;
     let favoritePlayers = [];
     let readStories = new Set();
     let previousStories = new Set();
@@ -331,8 +334,17 @@
     async function boot() {
       if (!['', 'localhost', '127.0.0.1'].includes(location.hostname)) {
         try {
-          const response = await fetch(`https://raw.githubusercontent.com/ahill85/freedition/main/stories.json?t=${Date.now()}`, { cache: 'no-store' });
-          if (response.ok) data = await response.json();
+          const cached = JSON.parse(localStorage.getItem(feedCacheKey) || 'null');
+          const cachedAt = Number(localStorage.getItem(feedCacheTimeKey) || 0);
+          if (cached && Array.isArray(cached.stories)) data = cached;
+          if (!cached || Date.now() - cachedAt >= feedCacheMs) {
+            const response = await fetch('https://raw.githubusercontent.com/ahill85/freedition/main/stories.json');
+            if (response.ok) {
+              data = await response.json();
+              localStorage.setItem(feedCacheKey, JSON.stringify(data));
+              localStorage.setItem(feedCacheTimeKey, String(Date.now()));
+            }
+          }
         } catch (error) {}
       }
       try {

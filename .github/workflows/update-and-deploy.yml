@@ -2,10 +2,9 @@ name: Update sports feed
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # 744 scheduled runs in a longest-case 31-day month.
+    - cron: "17 * * * *"
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: write
@@ -17,6 +16,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
       - name: Fetch and merge stories
