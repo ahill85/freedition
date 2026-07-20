@@ -2,8 +2,8 @@ name: Update sports feed
 
 on:
   schedule:
-    # 744 scheduled runs in a longest-case 31-day month.
-    - cron: "17 * * * *"
+    # 1,488 scheduled runs in a longest-case 31-day month.
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
 permissions:

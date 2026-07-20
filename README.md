@@ -32,8 +32,9 @@ see the new stories. There is nothing to install and no Node.js dependency.
 
 3. Open **Actions → Update sports feed → Run workflow** once.
 
-The included workflow checks the feed data once an hour. It has a hard two-minute
-timeout, so a 31-day month is capped at 744 scheduled jobs and 1,488 runner-minutes.
+The included workflow checks the feed data every 30 minutes. It has a hard two-minute
+timeout, so a 31-day month is capped at 1,488 scheduled jobs. The repository is public,
+so its standard GitHub-hosted runner usage is free.
 It only commits when the story set changes and
 can also be run manually from the Actions tab. It uses Python's standard
 library only: no server, database, API key, Node.js process, or paid worker.
