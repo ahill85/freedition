@@ -19,6 +19,7 @@ RSS_FEEDS = {
         ("FantasySP", "https://www.fantasysp.com/rss/nba/fantasysp/"),
         ("Yahoo Sports", "https://sports.yahoo.com/nba/rss/"),
         ("CBS Sports", "https://www.cbssports.com/rss/headlines/nba/"),
+        ("Hoops Rumors", "https://www.hoopsrumors.com/feed"),
     ],
     "nbl": [
         ("Google News", "https://news.google.com/rss/search?q=Australian+NBL+basketball&hl=en-AU&gl=AU&ceid=AU:en"),
@@ -30,6 +31,8 @@ RSS_FEEDS = {
         ("FantasySP", "https://www.fantasysp.com/rss/mlb/fantasysp/"),
         ("Yahoo Sports", "https://sports.yahoo.com/mlb/rss/"),
         ("CBS Sports", "https://www.cbssports.com/rss/headlines/mlb/"),
+        ("MLB.com", "https://www.mlb.com/feeds/news/rss.xml"),
+        ("MLB Trade Rumors", "https://www.mlbtraderumors.com/feed"),
     ],
     "nfl": [
         ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=NFL"),
@@ -39,6 +42,8 @@ RSS_FEEDS = {
         ("Yahoo Sports", "https://sports.yahoo.com/nfl/rss/"),
         ("CBS Sports", "https://www.cbssports.com/rss/headlines/nfl/"),
         ("BBC Sport", "https://feeds.bbci.co.uk/sport/american-football/rss.xml"),
+        ("PFF", "https://www.pff.com/feed"),
+        ("Pro Football Rumors", "https://www.profootballrumors.com/feed"),
     ],
     "nhl": [
         ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=NHL"),
@@ -47,6 +52,8 @@ RSS_FEEDS = {
         ("FantasySP", "https://www.fantasysp.com/rss/nhl/fantasysp/"),
         ("Yahoo Sports", "https://sports.yahoo.com/nhl/rss/"),
         ("CBS Sports", "https://www.cbssports.com/rss/headlines/nhl/"),
+        ("Daily Faceoff", "https://www.dailyfaceoff.com/rss"),
+        ("Pro Hockey Rumors", "https://www.prohockeyrumors.com/feed"),
     ],
     "soccer": [
         ("RotoWire", "https://www.rotowire.com/rss/news.php?sport=SOCCER"),
@@ -55,13 +62,18 @@ RSS_FEEDS = {
         ("Yahoo Sports", "https://sports.yahoo.com/soccer/rss/"),
         ("CBS Sports", "https://www.cbssports.com/rss/headlines/soccer/"),
         ("BBC Sport", "https://feeds.bbci.co.uk/sport/football/rss.xml"),
+        ("The Guardian", "https://www.theguardian.com/football/rss"),
     ],
     "afl": [
         ("DT Talk", "https://dreamteamtalk.com/feed/"),
         ("Keeper League", "https://keeperleaguepod.com.au/feed/"),
         ("AFL.com.au", "https://www.afl.com.au/rss"),
+        ("AFL Fantasy", "https://www.afl.com.au/fantasy/rss"),
     ],
-    "cricket": [("ESPNcricinfo", "https://www.espncricinfo.com/rss/content/story/feeds/0.xml")],
+    "cricket": [
+        ("ESPNcricinfo", "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"),
+        ("BBC Sport", "https://feeds.bbci.co.uk/sport/cricket/rss.xml"),
+    ],
 }
 NBC_PLAYER_NEWS = {
     "nba": "https://www.nbcsports.com/fantasy/basketball/player-news",
@@ -132,7 +144,7 @@ def rss_stories(sport, source, url):
                             "publishedAt": iso_date(item.findtext("pubDate")),
                             "players": players,
                             "kind": ("player" if source == "RotoWire" else
-                                     "fantasy" if source in {"FantasySP", "DT Talk", "Keeper League"} else "news")})
+                                     "fantasy" if source in {"FantasySP", "DT Talk", "Keeper League", "AFL Fantasy", "PFF"} else "news")})
     return stories
 
 def nbc_player_stories(sport, url):

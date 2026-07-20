@@ -29,8 +29,19 @@
 
   <main>
     <div class="feed-heading">
-      <h1>LATEST</h1>
+      <h1>LATEST <small id="story-count"></small></h1>
       <span id="updated"></span>
+    </div>
+    <div class="browse-tools">
+      <div id="kind-filters" aria-label="Filter stories by type">
+        <button class="active" type="button" data-kind="all">ALL</button>
+        <button type="button" data-kind="player">PLAYER NEWS</button>
+        <button type="button" data-kind="fantasy">FANTASY</button>
+      </div>
+      <div class="read-tools">
+        <label><input id="hide-read" type="checkbox"> HIDE READ</label>
+        <button id="mark-read" type="button">MARK ALL READ</button>
+      </div>
     </div>
     <section id="player-picker" hidden aria-label="My players">
       <form id="player-form">
@@ -63,8 +74,20 @@
     const playerPicker = document.querySelector('#player-picker');
     const playerForm = document.querySelector('#player-form');
     const savedPlayers = document.querySelector('#saved-players');
+    const kindButtons = [...document.querySelectorAll('#kind-filters button')];
+    const hideReadInput = document.querySelector('#hide-read');
+    const markReadButton = document.querySelector('#mark-read');
+    const storyCount = document.querySelector('#story-count');
     const favoriteStorageKey = 'freedition.favoritePlayers';
+    const readStorageKey = 'freedition.readStories';
+    const kindStorageKey = 'freedition.kindFilter';
+    const hideReadStorageKey = 'freedition.hideRead';
     let favoritePlayers = [];
+    let readStories = new Set();
+    let previousStories = new Set();
+    let currentSport = 'all';
+    let currentKind = 'all';
+    let hideRead = false;
 
     function playerKey(sport, name) {
       return `${sport}|${name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
@@ -112,14 +135,42 @@
       return `${Math.floor(hours / 24)}d ago`;
     }
 
+    function saveReadStories() {
+      try { localStorage.setItem(readStorageKey, JSON.stringify([...readStories].slice(-1000))); } catch (error) {}
+    }
+
+    function markStoryRead(url) {
+      readStories.add(url);
+      saveReadStories();
+    }
+
+    function baseStories(sport = currentSport) {
+      return data.stories.filter(story =>
+        (sport === 'all' || (sport === 'favorites' ? storyMatchesFavorites(story) : story.sport === sport)) &&
+        (currentKind === 'all' || story.kind === currentKind));
+    }
+
     function render(sport = 'all') {
+      currentSport = sport;
       playerPicker.hidden = sport !== 'favorites';
       if (sport === 'favorites') renderSavedPlayers();
-      const stories = data.stories.filter(story => sport === 'all' ||
-        (sport === 'favorites' ? storyMatchesFavorites(story) : story.sport === sport));
-      feed.replaceChildren(...stories.map(story => {
+      const matchingStories = baseStories(sport);
+      const stories = hideRead ? matchingStories.filter(story => !readStories.has(story.url)) : matchingStories;
+      storyCount.textContent = `(${stories.length})`;
+      let dividerAdded = false;
+      const nodes = [];
+      stories.forEach(story => {
+        if (!dividerAdded && previousStories.size && !previousStories.has(story.url)) {
+          const divider = document.createElement('div');
+          divider.className = 'new-divider';
+          divider.textContent = 'NEW SINCE YOUR LAST VISIT';
+          nodes.push(divider);
+          dividerAdded = true;
+        }
         const article = document.createElement('article');
         article.className = `story-${story.sport}`;
+        if (readStories.has(story.url)) article.classList.add('is-read');
+        else article.classList.add('is-unread');
         const label = document.createElement('span');
         const content = document.createElement('div');
         const title = document.createElement('h2');
@@ -134,6 +185,7 @@
         link.target = '_blank';
         link.rel = 'noreferrer';
         link.textContent = story.title;
+        link.addEventListener('click', () => markStoryRead(story.url));
         title.append(link);
         if (story.summary) {
           const summary = document.createElement('div');
@@ -149,6 +201,7 @@
         view.rel = 'noreferrer';
         view.setAttribute('aria-label', `View ${story.title}`);
         view.textContent = 'VIEW';
+        view.addEventListener('click', () => markStoryRead(story.url));
         share.type = 'button';
         share.setAttribute('aria-label', `Share ${story.title}`);
         share.textContent = 'SHARE';
@@ -189,8 +242,9 @@
           actions.append(favorite);
         }
         article.append(label, content, actions);
-        return article;
-      }));
+        nodes.push(article);
+      });
+      feed.replaceChildren(...nodes);
       empty.textContent = sport === 'favorites'
         ? (favoritePlayers.length ? 'No current news for your favourite players.' : 'Star a player to build your personal feed.')
         : 'No current stories found.';
@@ -219,6 +273,26 @@
       render(button.dataset.sport);
     }));
 
+    kindButtons.forEach(button => button.addEventListener('click', () => {
+      currentKind = button.dataset.kind;
+      kindButtons.forEach(item => item.classList.toggle('active', item === button));
+      try { localStorage.setItem(kindStorageKey, currentKind); } catch (error) {}
+      render(currentSport);
+    }));
+
+    hideReadInput.addEventListener('change', () => {
+      hideRead = hideReadInput.checked;
+      try { localStorage.setItem(hideReadStorageKey, hideRead ? '1' : '0'); } catch (error) {}
+      render(currentSport);
+    });
+
+    markReadButton.addEventListener('click', () => {
+      baseStories().forEach(story => readStories.add(story.url));
+      saveReadStories();
+      showToast('Matching stories marked as read');
+      render(currentSport);
+    });
+
     function updateTimestamp() {
       document.querySelector('#updated').textContent = data.updatedAt
         ? `UPDATED ${ago(data.updatedAt).toUpperCase()}`
@@ -239,6 +313,7 @@
       const current = data.stories.map(story => story.url);
       let previous = [];
       try { previous = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (error) {}
+      previousStories = new Set(previous);
       if (previous.length) {
         const seen = new Set(previous);
         const count = current.filter(url => !seen.has(url)).length;
@@ -264,13 +339,23 @@
         const stored = JSON.parse(localStorage.getItem(favoriteStorageKey) || '[]');
         if (Array.isArray(stored)) favoritePlayers = stored.filter(player => player && player.sport && player.name);
       } catch (error) {}
+      try {
+        const stored = JSON.parse(localStorage.getItem(readStorageKey) || '[]');
+        if (Array.isArray(stored)) readStories = new Set(stored);
+        currentKind = localStorage.getItem(kindStorageKey) || 'all';
+        hideRead = localStorage.getItem(hideReadStorageKey) === '1';
+      } catch (error) {}
+      hideReadInput.checked = hideRead;
+      const savedKindButton = kindButtons.find(button => button.dataset.kind === currentKind) || kindButtons[0];
+      currentKind = savedKindButton.dataset.kind;
+      kindButtons.forEach(button => button.classList.toggle('active', button === savedKindButton));
       let savedSport = 'all';
       try { savedSport = localStorage.getItem(filterStorageKey) || 'all'; } catch (error) {}
       const savedButton = buttons.find(button => button.dataset.sport === savedSport) || buttons[0];
       buttons.forEach(button => button.classList.toggle('active', button === savedButton));
       updateTimestamp();
-      render(savedButton.dataset.sport);
       showNewStoriesToast();
+      render(savedButton.dataset.sport);
     }
     boot();
   </script>

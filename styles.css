@@ -16,8 +16,16 @@ nav button[data-sport="favorites"].active { color:#ffd65a; }
 main { max-width:920px; min-height:calc(100vh - 64px); margin:auto; padding:22px 20px 48px; }
 .feed-heading { height:46px; padding:0 4px; display:flex; align-items:center; justify-content:space-between; }
 .feed-heading h1 { margin:0; font-size:16px; letter-spacing:-.02em; }
+.feed-heading h1 small { color:var(--muted); font-size:10px; letter-spacing:0; }
 .feed-heading span { color:var(--muted); font-size:8px; font-weight:800; letter-spacing:.1em; }
 #feed { display:grid; gap:9px; }
+.browse-tools { margin:0 0 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+#kind-filters,.read-tools { display:flex; align-items:center; gap:5px; }
+#kind-filters button,.read-tools button { height:27px; padding:0 9px; border:1px solid var(--line); border-radius:6px; background:#fff; color:#777b84; cursor:pointer; font:800 7px/1 Arial,Helvetica,sans-serif; letter-spacing:.05em; }
+#kind-filters button.active { border-color:var(--ink); background:var(--ink); color:#fff; }
+.read-tools label { color:#777b84; cursor:pointer; font:800 7px/1 Arial,Helvetica,sans-serif; letter-spacing:.05em; white-space:nowrap; }
+.read-tools input { vertical-align:-2px; accent-color:var(--ink); }
+.new-divider { padding:7px 4px 3px; color:var(--blue); font-size:8px; font-weight:900; letter-spacing:.1em; }
 #player-picker { margin:0 0 12px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
 #player-form { display:grid; grid-template-columns:1fr 92px 96px; gap:7px; }
 #player-form input,#player-form select,#player-form button { height:34px; border:1px solid var(--line); border-radius:7px; background:#f7f8f9; color:var(--ink); padding:0 10px; font:800 10px/1 Arial,Helvetica,sans-serif; }
@@ -29,6 +37,9 @@ article { position:relative; padding:18px 19px 17px 17px; border:1px solid var(-
 article::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:#aeb2bb; }
 article.story-nba::before { background:#e36032; } article.story-nbl::before { background:#b44c82; } article.story-mlb::before { background:#b9783e; } article.story-nfl::before { background:#4774d0; } article.story-nhl::before { background:#7356b8; } article.story-soccer::before { background:#16858d; } article.story-afl::before { background:#d4a017; } article.story-cricket::before { background:#27926b; }
 article:hover { transform:translateY(-1px); border-color:#cdd0d7; box-shadow:0 7px 20px #20232b0e; }
+article.is-unread::after { content:""; position:absolute; top:10px; right:10px; width:5px; height:5px; border-radius:50%; background:var(--blue); }
+article.is-read { background:#eceef1; box-shadow:none; }
+article.is-read h2,article.is-read .summary { opacity:.62; }
 .sport { width:max-content; margin-top:2px; padding:5px 7px 4px; border-radius:6px; background:#f1f2f4; color:#666; font-size:7px; font-weight:900; letter-spacing:.08em; }
 .sport.nba { color:#a74425; background:#fff0eb; }.sport.nbl { color:#80305b; background:#fbeaf3; }.sport.mlb { color:#76451f; background:#faf0e5; }.sport.nfl { color:#26509b; background:#edf3ff; }.sport.nhl { color:#50388d; background:#f1edfb; }.sport.soccer { color:#08636a; background:#e8f7f7; }.sport.afl { color:#775400; background:#fff7d6; }.sport.cricket { color:#16704c; background:#eaf8f2; }
 h2 { margin:0; font-size:18px; line-height:1.25; letter-spacing:-.025em; }
@@ -52,6 +63,9 @@ article p { margin:7px 0 0; color:var(--muted); font-size:9px; font-weight:700; 
   main { padding:12px 10px 32px; }
   .feed-heading { height:48px; padding:0 4px; }
   #feed { gap:7px; }
+  .browse-tools { align-items:flex-start; flex-direction:column; }
+  #kind-filters,.read-tools { width:100%; }
+  .read-tools { justify-content:space-between; }
   #player-form { grid-template-columns:1fr 76px; }
   #player-form button { grid-column:1/-1; }
   article { padding:15px 13px 14px 12px; border-radius:10px; grid-template-columns:49px 1fr 44px; gap:9px; }
