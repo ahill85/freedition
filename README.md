@@ -56,4 +56,5 @@ uploads. `stories.js` remains a local fallback if GitHub cannot be reached.
 - Soccer: RotoWire, ESPN, FOX Sports, Yahoo Sports, CBS Sports, BBC Sport
 
 Stories retain their publisher attribution and link directly to the original
-article. Duplicate headlines are merged and each sport is capped at 30 items.
+article. Duplicate headlines are merged. NBA keeps up to 80 items, AFL up to
+60, and the supporting sports up to 30 each.

@@ -44,15 +44,7 @@
       </div>
     </div>
     <section id="player-picker" hidden aria-label="My players">
-      <form id="player-form">
-        <input id="player-name" type="text" placeholder="Player name" aria-label="Player name" autocomplete="off" required>
-        <select id="player-sport" aria-label="Player sport">
-          <option value="afl">AFL</option><option value="cricket">ICC</option><option value="mlb">MLB</option>
-          <option value="nba" selected>NBA</option><option value="nbl">NBL</option><option value="nfl">NFL</option>
-          <option value="nhl">NHL</option><option value="soccer">SOCCER</option>
-        </select>
-        <button type="submit">ADD PLAYER</button>
-      </form>
+      <p>Go to PLAYER NEWS and star players to see their updates here.</p>
       <div id="saved-players"></div>
     </section>
     <div id="feed" aria-live="polite"></div>
@@ -72,7 +64,6 @@
     let data = window.SPORTS_FEED || { updatedAt: null, stories: [] };
     const toast = document.querySelector('#news-toast');
     const playerPicker = document.querySelector('#player-picker');
-    const playerForm = document.querySelector('#player-form');
     const savedPlayers = document.querySelector('#saved-players');
     const kindButtons = [...document.querySelectorAll('#kind-filters button')];
     const hideReadInput = document.querySelector('#hide-read');
@@ -91,6 +82,7 @@
     let currentSport = 'all';
     let currentKind = 'all';
     let hideRead = false;
+    let favoriteFilter = 'all';
 
     function playerKey(sport, name) {
       return `${sport}|${name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()}`;
@@ -104,7 +96,8 @@
     function storyMatchesFavorites(story) {
       const names = story.players || [];
       const text = `${story.title} ${story.summary || ''}`.toLowerCase();
-      return favoritePlayers.some(player => player.sport === story.sport &&
+      return favoritePlayers.some(player => (favoriteFilter === 'all' || playerKey(player.sport, player.name) === favoriteFilter) &&
+        player.sport === story.sport &&
         (names.some(name => playerKey(story.sport, name) === playerKey(player.sport, player.name)) ||
          text.includes(player.name.toLowerCase())));
     }
@@ -114,16 +107,22 @@
     }
 
     function renderSavedPlayers() {
-      savedPlayers.replaceChildren(...favoritePlayers.map(player => {
+      if (favoritePlayers.length < 2) {
+        favoriteFilter = 'all';
+        savedPlayers.replaceChildren();
+        return;
+      }
+      const filters = [{ sport: '', name: 'ALL', key: 'all' }, ...favoritePlayers.map(player => ({
+        ...player, key: playerKey(player.sport, player.name)
+      }))];
+      if (!filters.some(player => player.key === favoriteFilter)) favoriteFilter = 'all';
+      savedPlayers.replaceChildren(...filters.map(player => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.textContent = `${player.name} · ${player.sport.toUpperCase()} ×`;
-        button.setAttribute('aria-label', `Remove ${player.name}`);
+        button.classList.toggle('active', player.key === favoriteFilter);
+        button.textContent = player.key === 'all' ? 'ALL' : `${player.name} · ${player.sport.toUpperCase()}`;
         button.addEventListener('click', () => {
-          const key = playerKey(player.sport, player.name);
-          favoritePlayers = favoritePlayers.filter(item => playerKey(item.sport, item.name) !== key);
-          saveFavorites();
-          showToast(`${player.name} removed from favourites`);
+          favoriteFilter = player.key;
           render('favorites');
         });
         return button;
@@ -255,19 +254,6 @@
     }
 
     const filterStorageKey = 'freedition.sportFilter';
-
-    playerForm.addEventListener('submit', event => {
-      event.preventDefault();
-      const input = document.querySelector('#player-name');
-      const sport = document.querySelector('#player-sport').value;
-      const name = input.value.trim().replace(/\s+/g, ' ');
-      if (!name) return;
-      if (!isFavorite(sport, name)) favoritePlayers.push({ sport, name });
-      saveFavorites();
-      input.value = '';
-      showToast(`${name} favourited`);
-      render('favorites');
-    });
 
     buttons.forEach(button => button.addEventListener('click', () => {
       buttons.forEach(item => item.classList.remove('active'));

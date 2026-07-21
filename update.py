@@ -81,10 +81,27 @@ NBC_PLAYER_NEWS = {
     "mlb": "https://www.nbcsports.com/fantasy/baseball/player-news",
 }
 GDELT_AFL = "https://api.gdeltproject.org/api/v2/doc/doc?query=%28AFL%20OR%20%22Australian%20Football%20League%22%29&mode=artlist&maxrecords=50&format=json&sort=datedesc"
-LIMIT_PER_SPORT = 30
-LIMIT_PER_SOURCE = 15
-LIMIT_PRIORITY_PER_SPORT = 20
+DEFAULT_LIMIT_PER_SPORT = 30
+SPORT_LIMITS = {"nba": 80, "afl": 60}
+DEFAULT_LIMIT_PER_SOURCE = 15
+SOURCE_LIMITS = {
+    ("nba", "NBC Sports Rotoworld"): 45,
+    ("nba", "RotoWire"): 25,
+    ("afl", "AFL.com.au"): 25,
+    ("afl", "DT Talk"): 25,
+}
+DEFAULT_PRIORITY_LIMIT = 20
+PRIORITY_LIMITS = {"nba": 60, "afl": 35}
 MAX_STORY_AGE = timedelta(days=14)
+
+def sport_limit(sport):
+    return SPORT_LIMITS.get(sport, DEFAULT_LIMIT_PER_SPORT)
+
+def source_limit(sport, source):
+    return SOURCE_LIMITS.get((sport, source), DEFAULT_LIMIT_PER_SOURCE)
+
+def priority_limit(sport):
+    return PRIORITY_LIMITS.get(sport, DEFAULT_PRIORITY_LIMIT)
 
 def clean(value):
     value = html.unescape(re.sub(r"<[^>]+>", " ", value or ""))
@@ -120,7 +137,7 @@ def iso_timestamp(value):
 def rss_stories(sport, source, url):
     root = ET.fromstring(fetch(url))
     stories = []
-    for item in root.findall(".//item")[:LIMIT_PER_SPORT]:
+    for item in root.findall(".//item")[:sport_limit(sport)]:
         title = clean(item.findtext("title"))
         item_source = clean(item.findtext("source"))
         if source == "Google News" and item_source:
@@ -148,31 +165,39 @@ def rss_stories(sport, source, url):
     return stories
 
 def nbc_player_stories(sport, url):
-    page = fetch(url).decode("utf-8", "ignore")
     stories = []
-    for block in re.split(r'<li class="PlayerNewsModuleList-item"[^>]*>', page)[1:]:
-        player_link = re.search(r'PlayerNewsPost-name-container.*?<a href="([^"]+)"', block, re.S)
-        headline = re.search(r'<h3 class="PlayerNewsPost-headline">(.*?)</h3>', block, re.S)
-        analysis = re.search(r'<div class="PlayerNewsPost-analysis">(.*?)(?:<div class="PlayerNewsPost-author"|</div>)', block, re.S)
-        published = re.search(r'PlayerNewsPost-date[^>]*data-date="([^"]+)"', block)
-        first_name = re.search(r'PlayerNewsPost-firstName[^>]*>(.*?)</span>', block, re.S)
-        last_name = re.search(r'PlayerNewsPost-lastName[^>]*>(.*?)</span>', block, re.S)
-        player = clean(" ".join(part.group(1) for part in (first_name, last_name) if part))
-        title = clean(headline.group(1)) if headline else ""
-        link = html.unescape(player_link.group(1)) if player_link else ""
-        if title and link:
-            stories.append({"sport": sport, "title": title,
-                            "summary": short(analysis.group(1)) if analysis else "",
-                            "url": link, "source": "NBC Sports Rotoworld",
-                            "publishedAt": iso_timestamp(published.group(1) if published else ""),
-                            "players": [player] if player else [],
-                            "kind": "player"})
-    return stories[:LIMIT_PER_SPORT]
+    page_numbers = range(1, 5) if sport == "nba" else range(1, 2)
+    for page_number in page_numbers:
+        page_url = url if page_number == 1 else f"{url}?p={page_number}"
+        try:
+            page = fetch(page_url).decode("utf-8", "ignore")
+        except Exception:
+            if page_number == 1:
+                raise
+            break
+        for block in re.split(r'<li class="PlayerNewsModuleList-item"[^>]*>', page)[1:]:
+            player_link = re.search(r'PlayerNewsPost-name-container.*?<a href="([^"]+)"', block, re.S)
+            headline = re.search(r'<h3 class="PlayerNewsPost-headline">(.*?)</h3>', block, re.S)
+            analysis = re.search(r'<div class="PlayerNewsPost-analysis">(.*?)(?:<div class="PlayerNewsPost-author"|</div>)', block, re.S)
+            published = re.search(r'PlayerNewsPost-date[^>]*data-date="([^"]+)"', block)
+            first_name = re.search(r'PlayerNewsPost-firstName[^>]*>(.*?)</span>', block, re.S)
+            last_name = re.search(r'PlayerNewsPost-lastName[^>]*>(.*?)</span>', block, re.S)
+            player = clean(" ".join(part.group(1) for part in (first_name, last_name) if part))
+            title = clean(headline.group(1)) if headline else ""
+            link = html.unescape(player_link.group(1)) if player_link else ""
+            if title and link:
+                stories.append({"sport": sport, "title": title,
+                                "summary": short(analysis.group(1)) if analysis else "",
+                                "url": link, "source": "NBC Sports Rotoworld",
+                                "publishedAt": iso_timestamp(published.group(1) if published else ""),
+                                "players": [player] if player else [],
+                                "kind": "player"})
+    return stories[:sport_limit(sport)]
 
 def gdelt_afl_stories():
     payload = json.loads(fetch(GDELT_AFL))
     stories = []
-    for article in payload.get("articles", [])[:LIMIT_PER_SPORT]:
+    for article in payload.get("articles", [])[:sport_limit("afl")]:
         title, url = clean(article.get("title")), article.get("url")
         if not title or not url:
             continue
@@ -233,12 +258,12 @@ def main():
     prioritized.extend(story for story in stories if story.get("kind") == "fantasy")
     prioritized.extend(story for story in stories if story.get("kind") not in {"player", "fantasy"})
     for story in prioritized:
-        if counts.get(story["sport"], 0) >= LIMIT_PER_SPORT:
+        if counts.get(story["sport"], 0) >= sport_limit(story["sport"]):
             continue
-        if story.get("kind") in {"player", "fantasy"} and priority_counts.get(story["sport"], 0) >= LIMIT_PRIORITY_PER_SPORT:
+        if story.get("kind") in {"player", "fantasy"} and priority_counts.get(story["sport"], 0) >= priority_limit(story["sport"]):
             continue
         source_key = (story["sport"], story["source"])
-        if len(RSS_FEEDS.get(story["sport"], [])) > 1 and source_counts.get(source_key, 0) >= LIMIT_PER_SOURCE:
+        if len(RSS_FEEDS.get(story["sport"], [])) > 1 and source_counts.get(source_key, 0) >= source_limit(*source_key):
             continue
         if any(duplicate(story, existing) for existing in unique):
             continue
