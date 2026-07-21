@@ -44,7 +44,7 @@
       </div>
     </div>
     <section id="player-picker" hidden aria-label="My players">
-      <p>Go to PLAYER NEWS and star players to see their updates here.</p>
+      <p id="favorite-help">Go to PLAYER NEWS and star players to see their updates here.</p>
       <div id="saved-players"></div>
     </section>
     <div id="feed" aria-live="polite"></div>
@@ -65,6 +65,8 @@
     const toast = document.querySelector('#news-toast');
     const playerPicker = document.querySelector('#player-picker');
     const savedPlayers = document.querySelector('#saved-players');
+    const favoriteHelp = document.querySelector('#favorite-help');
+    const kindFilters = document.querySelector('#kind-filters');
     const kindButtons = [...document.querySelectorAll('#kind-filters button')];
     const hideReadInput = document.querySelector('#hide-read');
     const markReadButton = document.querySelector('#mark-read');
@@ -107,25 +109,43 @@
     }
 
     function renderSavedPlayers() {
-      if (favoritePlayers.length < 2) {
+      favoriteHelp.hidden = favoritePlayers.length > 0;
+      if (!favoritePlayers.length) {
         favoriteFilter = 'all';
         savedPlayers.replaceChildren();
         return;
       }
-      const filters = [{ sport: '', name: 'ALL', key: 'all' }, ...favoritePlayers.map(player => ({
+      const filters = [...(favoritePlayers.length > 1 ? [{ sport: '', name: 'ALL', key: 'all' }] : []), ...favoritePlayers.map(player => ({
         ...player, key: playerKey(player.sport, player.name)
       }))];
-      if (!filters.some(player => player.key === favoriteFilter)) favoriteFilter = 'all';
+      if (!filters.some(player => player.key === favoriteFilter)) favoriteFilter = filters[0].key;
       savedPlayers.replaceChildren(...filters.map(player => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.classList.toggle('active', player.key === favoriteFilter);
-        button.textContent = player.key === 'all' ? 'ALL' : `${player.name} · ${player.sport.toUpperCase()}`;
-        button.addEventListener('click', () => {
+        const pill = document.createElement('span');
+        const filterButton = document.createElement('button');
+        pill.className = `player-filter${player.key === favoriteFilter ? ' active' : ''}`;
+        filterButton.type = 'button';
+        filterButton.textContent = player.key === 'all' ? 'ALL' : `${player.name} · ${player.sport.toUpperCase()}`;
+        filterButton.addEventListener('click', () => {
           favoriteFilter = player.key;
           render('favorites');
         });
-        return button;
+        pill.append(filterButton);
+        if (player.key !== 'all') {
+          const removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'remove-player';
+          removeButton.textContent = '×';
+          removeButton.setAttribute('aria-label', `Remove ${player.name} from favourites`);
+          removeButton.addEventListener('click', () => {
+            favoritePlayers = favoritePlayers.filter(item => playerKey(item.sport, item.name) !== player.key);
+            if (favoriteFilter === player.key) favoriteFilter = 'all';
+            saveFavorites();
+            showToast(`${player.name} removed from favourites`);
+            render('favorites');
+          });
+          pill.append(removeButton);
+        }
+        return pill;
       }));
     }
 
@@ -149,12 +169,13 @@
     function baseStories(sport = currentSport) {
       return data.stories.filter(story =>
         (sport === 'all' || (sport === 'favorites' ? storyMatchesFavorites(story) : story.sport === sport)) &&
-        (currentKind === 'all' || story.kind === currentKind));
+        (sport === 'favorites' || currentKind === 'all' || story.kind === currentKind));
     }
 
     function render(sport = 'all') {
       currentSport = sport;
       playerPicker.hidden = sport !== 'favorites';
+      kindFilters.hidden = sport === 'favorites';
       if (sport === 'favorites') renderSavedPlayers();
       const matchingStories = baseStories(sport);
       const stories = hideRead ? matchingStories.filter(story => !readStories.has(story.url)) : matchingStories;
@@ -250,7 +271,7 @@
       empty.textContent = sport === 'favorites'
         ? (favoritePlayers.length ? 'No current news for your favourite players.' : 'Star a player to build your personal feed.')
         : 'No current stories found.';
-      empty.hidden = stories.length > 0;
+      empty.hidden = stories.length > 0 || (sport === 'favorites' && favoritePlayers.length === 0);
     }
 
     const filterStorageKey = 'freedition.sportFilter';
